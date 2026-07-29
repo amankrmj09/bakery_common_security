@@ -30,18 +30,14 @@ dependencies {
     // 2. Spring Boot Core & Web
     api("org.springframework.boot:spring-boot-starter-web")
     compileOnly("jakarta.servlet:jakarta.servlet-api:6.1.0")
-
+    
     // 6. Security
     api("org.springframework.boot:spring-boot-starter-security")
-
+    
     // 8. Tooling & Lombok
     compileOnly("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
-
-    // 9. Testing
-    testImplementation(platform("org.junit:junit-bom:6.0.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    
 }
 
 tasks.test {
