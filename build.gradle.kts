@@ -55,7 +55,7 @@ publishing {
             pom {
                 name.set("Bakery Common Security")
                 description.set("Shared DTOs and Common Utilities for Bakery Microservices")
-                url.set("https://github.com/amankrmj09/bakery-common-security")
+                url.set("https://github.com/amankrmj09/bakery_common_security")
                 licenses {
                     license {
                         name.set("The MIT License")
@@ -73,7 +73,7 @@ publishing {
     repositories {
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/amankrmj09/bakery-common-security")
+            url = uri("https://maven.pkg.github.com/amankrmj09/bakery_common_security")
             credentials {
                 username = System.getenv("GITHUB_ACTOR")
                 password = System.getenv("GITHUB_TOKEN")
