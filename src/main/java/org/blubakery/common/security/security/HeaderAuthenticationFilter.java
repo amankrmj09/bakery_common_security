@@ -19,8 +19,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        String userId = request.getHeader("X-User-Id");
-        String role = request.getHeader("X-User-Role");
+        String userId = request.getHeader(org.blubakery.common.core.constants.HttpHeaderConstants.X_USER_ID_HEADER);
+        String role = request.getHeader(org.blubakery.common.core.constants.HttpHeaderConstants.X_USER_ROLE_HEADER);
 
         if (userId != null && role != null) {
             String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();

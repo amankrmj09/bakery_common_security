@@ -14,6 +14,7 @@ java {
 }
 
 repositories {
+    mavenLocal()
     mavenCentral()
 }
 
@@ -29,6 +30,7 @@ dependencyManagement {
 dependencies {
     // 2. Spring Boot Core & Web
     api("org.springframework.boot:spring-boot-starter-web")
+    api("org.blubakery.libs:bakery_common_core:1.0.1")
     compileOnly("jakarta.servlet:jakarta.servlet-api:6.1.0")
     
     // 6. Security
