@@ -16,6 +16,14 @@ java {
 repositories {
     mavenLocal()
     mavenCentral()
+    maven {
+        name = "GitHubBakeryCommonCore"
+        url = uri("https://maven.pkg.github.com/amankrmj09/bakery_common_core")
+        credentials {
+            username = System.getenv("GITHUB_ACTOR")
+            password = System.getenv("GITHUB_TOKEN")
+        }
+    }
 }
 
 extra["springCloudVersion"] = "2025.0.3"
