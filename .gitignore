@@ -44,3 +44,4 @@ bin/
 # Logs
 *.log
 *.gz
+logs/
