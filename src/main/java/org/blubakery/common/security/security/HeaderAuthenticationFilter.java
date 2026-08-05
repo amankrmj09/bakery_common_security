@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.blubakery.common.core.constants.HttpHeaderConstants;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -19,8 +20,8 @@ public class HeaderAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
 
-        String userId = request.getHeader(org.blubakery.common.core.constants.HttpHeaderConstants.X_USER_ID_HEADER);
-        String role = request.getHeader(org.blubakery.common.core.constants.HttpHeaderConstants.X_USER_ROLE_HEADER);
+        String userId = request.getHeader(HttpHeaderConstants.X_USER_ID_HEADER);
+        String role = request.getHeader(HttpHeaderConstants.X_USER_ROLE_HEADER);
 
         if (userId != null && role != null) {
             String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role.toUpperCase();
