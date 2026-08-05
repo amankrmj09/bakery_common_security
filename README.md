@@ -1,52 +1,77 @@
 # Bakery Common Security Module
 
-This module is a shared Spring Security library used across the various microservices in the Blu's Bakery ecosystem. It centralizes common security configurations, JWT validation logic, and authorization primitives, ensuring a consistent and secure approach to API access control across all services.
+This module is a shared Spring Security library used across the microservices in the Blu's Bakery ecosystem. It centralizes common security configurations, header-based authentication filtering, and security exception primitives, ensuring a consistent and secure approach to method-level access control across all services.
 
-## Purpose
+## Purpose & Architecture
 
-The primary purpose of this module is to abstract away the boilerplate code required to secure Spring Boot applications. It provides:
-- **Shared Spring Security Configuration**: Pre-configured `SecurityFilterChain` that sets up stateless session management, CORS rules, and disables CSRF (typical for stateless REST APIs).
-- **JWT Validation Logic**: Utility classes to parse JSON Web Tokens (JWTs), verify their signatures against a shared secret or public key, and extract claims (such as the user's ID and role).
-- **JwtAuthenticationFilter**: A custom `OncePerRequestFilter` that intercepts incoming HTTP requests, extracts the JWT from the `Authorization` header, validates it, and sets the authenticated user's details in the Spring Security `SecurityContext`.
-- **Role Enum Definitions**: A centralized enum defining the various roles within the system (e.g., `CUSTOMER`, `ADMIN`, `STORE_MANAGER`), ensuring consistent role-based access control (RBAC) terminology across all microservices.
+The primary purpose of this module is to eliminate redundant security boilerplate across microservices while enforcing uniform access control policies:
+
+- **Shared Method Security Configuration (`MethodSecurityConfig`)**: A Spring `@Configuration` class that sets up a stateless `SecurityFilterChain` (`SessionCreationPolicy.STATELESS`), disables CSRF, handles 401 Unauthorized and 403 Forbidden responses, and enables method-level security via `@EnableMethodSecurity`.
+- **Header Authentication Filter (`HeaderAuthenticationFilter`)**: A custom `OncePerRequestFilter` that inspects incoming HTTP headers (`X-User-Id` and `X-User-Role`), builds a Spring `UsernamePasswordAuthenticationToken` with granted authority `ROLE_<ROLE>`, and sets it into the `SecurityContextHolder`.
+- **Security Exceptions**: Shared exception classes (`InvalidTokenException`, `UnauthenticatedException`, `UnauthorizedAccessException`) for handling security violation scenarios uniformly.
 
 ## Folder Structure
 
-A typical folder structure for this shared module looks like this:
-
 ```
 bakery_common_security/
+├── .github/
+│   └── workflows/
+│       └── publish.yml
+├── gradle/
+│   └── wrapper/
+│       ├── gradle-wrapper.jar
+│       └── gradle-wrapper.properties
 ├── src/
-│   ├── main/
-│   │   ├── java/
-│   │   │   └── com/blusbakery/common/security/
-│   │   │       ├── config/
-│   │   │       │   └── SecurityConfig.java         # Base Spring Security configuration
-│   │   │       ├── filter/
-│   │   │       │   └── JwtAuthenticationFilter.java  # Intercepts requests to validate JWTs
-│   │   │       ├── jwt/
-│   │   │       │   └── JwtUtil.java                # Logic for parsing and validating JWT signatures
-│   │   │       └── model/
-│   │   │           └── Role.java                   # Centralized Role enum (CUSTOMER, ADMIN, etc.)
-│   │   └── resources/
-│   └── test/
-└── pom.xml / build.gradle                        # Dependency management for the shared library
+│   └── main/
+│       ├── java/
+│       │   └── org/blubakery/common/security/
+│       │       ├── exception/
+│       │       │   └── security/
+│       │       │       ├── InvalidTokenException.java
+│       │       │       ├── UnauthenticatedException.java
+│       │       │       └── UnauthorizedAccessException.java
+│       │       └── security/
+│       │           ├── HeaderAuthenticationFilter.java
+│       │           └── MethodSecurityConfig.java
+│       └── resources/
+├── build.gradle.kts
+├── gradle.properties
+├── gradlew
+├── gradlew.bat
+├── settings.gradle.kts
+└── README.md
 ```
+
+## 🔗 Related Links
+
+- [Parent Repository](https://github.com/amankrmj09/Blu_s_Bakery)
 
 ## How Microservices Integrate This Module
 
-To secure its REST endpoints, a microservice integrates this shared module by following these steps:
+### 1. Gradle Dependency
 
-1. **Add the Dependency**: Include `bakery_common_security` as a dependency in the microservice's `pom.xml` or `build.gradle`.
-2. **Import Configuration**: Import the shared security configuration class into the microservice's context. This is often done using `@Import(SecurityConfig.class)` on the main application class or a local configuration class.
-3. **Component Scanning**: Ensure that the packages from this module (e.g., `com.blusbakery.common.security`) are included in the Spring component scan if necessary.
-4. **Endpoint Security**: With the filter and configuration in place, the microservice can use standard Spring Security annotations like `@PreAuthorize` to secure its endpoints based on roles.
+Add `bakery_common_security` as a dependency in your microservice's `build.gradle.kts`:
 
-**Example Integration:**
+```kotlin
+dependencies {
+    implementation("org.blubakery.libs:bakery_common_security:2.0.0")
+}
+```
+
+### 2. Import Security Configuration
+
+Import `MethodSecurityConfig` in your main Spring Boot application class or configuration class:
 
 ```java
+package org.blubakery.orderservice;
+
+import org.blubakery.common.security.security.MethodSecurityConfig;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Import;
+
 @SpringBootApplication
-@Import(SecurityConfig.class)
+@Import(MethodSecurityConfig.class)
 public class OrderServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(OrderServiceApplication.class, args);
@@ -54,35 +79,45 @@ public class OrderServiceApplication {
 }
 ```
 
-**Example Endpoint Security:**
+### 3. Endpoint Authorization
+
+Secure controllers and services using Spring Security method annotations:
 
 ```java
 @RestController
 @RequestMapping("/api/orders")
 public class OrderController {
 
-    @PreAuthorize("hasRole('CUSTOMER')")
     @PostMapping
-    public ResponseEntity<Order> createOrder(...) {
-        // Only accessible by users with the CUSTOMER role
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<OrderDto> createOrder(@RequestBody OrderRequest request) {
+        return ResponseEntity.ok(orderService.createOrder(request));
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'STORE_MANAGER')")
     @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders(...) {
-        // Only accessible by ADMINs or STORE_MANAGERs
+    @PreAuthorize("hasAnyRole('ADMIN', 'MANAGER')")
+    public ResponseEntity<List<OrderDto>> getAllOrders() {
+        return ResponseEntity.ok(orderService.getAllOrders());
     }
 }
 ```
 
-## JWT Validation Process
+## Request Authentication Pipeline
 
-It is important to note that **this module does NOT generate JWTs**. Token generation is strictly handled by the centralized Authentication/Identity Service (e.g., `bakery_auth_service`) upon successful user login.
-
-This shared module is solely responsible for **validation**:
-
-1. **Extraction**: The `JwtAuthenticationFilter` extracts the token from the `Authorization: Bearer <token>` header of incoming requests.
-2. **Signature Verification**: Using the `JwtUtil`, the module verifies the cryptographic signature of the token to ensure it has not been tampered with. This typically involves a shared secret key or an asymmetric public key.
-3. **Expiration Check**: The module checks the `exp` (expiration time) claim to ensure the token is still valid.
-4. **Claim Extraction**: Upon successful verification, claims such as the username and roles are extracted.
-5. **Context Setup**: A Spring Security `UsernamePasswordAuthenticationToken` is created and placed in the `SecurityContextHolder`, allowing the rest of the application to know *who* is making the request and *what* their authorities are.
+```
+[Incoming Request from Gateway]
+         │ (Headers: X-User-Id, X-User-Role)
+         ▼
+[HeaderAuthenticationFilter]
+         │ 1. Extract X-User-Id & X-User-Role
+         │ 2. Construct GrantedAuthority ("ROLE_" + role)
+         │ 3. Populate SecurityContextHolder
+         ▼
+[MethodSecurityConfig Filter Chain]
+         │ (Session: STATELESS, CSRF: Disabled)
+         ▼
+[Spring Security Method Interceptor (@PreAuthorize)]
+         │ 
+         ├── Granted ──► Controller Action Executed
+         └── Denied  ──► 403 Forbidden Response / Exception
+```
